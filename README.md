@@ -9,7 +9,7 @@ A Streamlit application that brings the full Madrid rental housing analysis to l
 
 ## Live App
 
-> 🚀 **[Launch App on Streamlit Cloud]([https://your-app-url.streamlit.app](https://madridrentalapp-mariangarabana.streamlit.app/))**
+> 🚀 **Streamlit App Link:** https://madridrentalapp-mariangarabana.streamlit.app/
 
 ---
 
@@ -113,4 +113,4 @@ The app reproduces the full group assignment pipeline:
 
 ---
 
-*Built by Marian Garabana · MBDS 2026 · IE School of Human Sciences & Technology*
+*Built by Marian Garabana · MBDS 2026 · IE School of Science & Technology*
