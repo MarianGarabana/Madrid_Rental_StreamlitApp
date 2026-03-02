@@ -17,11 +17,6 @@ from sklearn.metrics import (r2_score, mean_squared_error, mean_absolute_error,
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 import statsmodels.api as sm
 
-from streamlit_extras.stoggle import stoggle
-from streamlit_extras.metric_cards import style_metric_cards
-from streamlit_extras.colored_header import colored_header
-from streamlit_extras.annotated_text import annotated_text
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # APP CONFIG
@@ -53,7 +48,8 @@ def load_and_clean_data():
     # ── Feature engineering from Phase 1 ─────────────────────────────────
 
     # Is_Special: rare property types combined into one meaningful flag
-    df['Is_Special'] = ((df['Penthouse'] == 1) | (df['Cottage'] == 1) | (df['Duplex'] == 1) | (df['Semidetached'] == 1)).astype(int)
+    df['Is_Special'] = ((df['Penthouse'] == 1) | (df['Cottage'] == 1) |
+                        (df['Duplex'] == 1)    | (df['Semidetached'] == 1)).astype(int)
 
     # Price per m² — for profiling/display only (DO NOT use as model input, leaks Rent)
     df['Price_per_sqm'] = (df['Rent'] / df['Sq.Mt']).round(2)
@@ -313,10 +309,6 @@ df['Segment'] = df['Cluster'].map(lambda c: M['segment_labels'][c][0])
 # NAVIGATION
 # ══════════════════════════════════════════════════════════════════════════════
 # TODO: style the sidebar however you like (logo, colours, etc.)
-stoggle(
-    "ℹ️ About this app",
-    "Explore Madrid's rental market through clustering, regression, and classification models trained on real listing data."
-)
 
 page = st.sidebar.radio("Navigate", [
     "🔍 Market Explorer",
@@ -325,11 +317,8 @@ page = st.sidebar.radio("Navigate", [
     "📊 High Rent Classifier",
 ])
 
-colored_header(
-    label=page,
-    description="Madrid Rental Market Analysis",
-    color_name="blue-70" 
-)
+st.title(page)
+st.divider()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -352,8 +341,6 @@ if page == "🔍 Market Explorer":
         st.metric("Avg Square Meters", filtered['Sq.Mt'].mean().round(2))
     with col4:
         st.metric("Avg Price per m2", filtered['Price_per_sqm'].mean().round(2))
-    
-    style_metric_cards(border_left_color="#3498db")
 
     fig = px.histogram(filtered, x='Rent', nbins=40)
     fig.add_vline(x=filtered['Rent'].median(), line_width=2, line_color="red")
@@ -369,10 +356,7 @@ if page == "🔍 Market Explorer":
     fig = px.imshow(filtered[['Rent','Sq.Mt','Bedrooms','Floor','Outer','Elevator','Price_per_sqm']].corr(), text_auto='.2f', color_continuous_scale='RdBu_r')
     st.plotly_chart(fig, use_container_width=True)
 
-    from streamlit_extras.dataframe_explorer import dataframe_explorer
-
-    filtered_view = dataframe_explorer(filtered, case=False)
-    st.dataframe(filtered_view, use_container_width=True)
+    st.dataframe(filtered)
 
 
 
@@ -386,7 +370,8 @@ elif page == "🏘️ Property Segments":
         Median_rent=('Rent', 'median'),
         Median_SqMt=('Sq.Mt', 'median'),
         Median_Floor=('Floor', 'median'),
-        Pct_Outer=('Outer', 'mean'),).reset_index()  
+        Pct_Outer=('Outer', 'mean'),
+    )
 
     st.dataframe(summary)
 
@@ -399,7 +384,7 @@ elif page == "🏘️ Property Segments":
 
     for cluster_id, (name, desc) in M['segment_labels'].items():
         with st.expander(f"{name}"):
-            annotated_text(desc)
+            st.write(desc)
     
     sqm = st.number_input("Square meters", min_value=0, max_value=1000, value=100)
     bedrooms = st.number_input("Bedrooms", min_value=0, max_value=10, value=2)
@@ -429,8 +414,6 @@ elif page == "💶 Rent Predictor":
         st.metric("RMSE", f"{M['rmse_r']:.2f}")
     with col3:
         st.metric("MAE", f"{M['mae_r']:.2f}")
-    
-    style_metric_cards(border_left_color="#3498db")
 
     coef_plot = M['coef_df'][M['coef_df']['Feature'] != 'const'].copy()
     coef_plot['Direction'] = coef_plot['Effect (€)'].apply(lambda x: 'Increases rent' if x > 0 else 'Decreases rent')
@@ -490,8 +473,6 @@ elif page == "📊 High Rent Classifier":
     with col3:
         st.metric("AUC Gap", f"{M['auc_train_l'] - M['auc_test_l']:.2f}")
     
-    style_metric_cards(border_left_color="#3498db")
-    
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=M['fpr_train'], y=M['tpr_train'], mode='lines', name='Train'))
     fig.add_trace(go.Scatter(x=M['fpr_test'], y=M['tpr_test'], mode='lines', name='Test'))
@@ -506,7 +487,7 @@ elif page == "📊 High Rent Classifier":
     prob_low  = M['y_prob_l'][M['y_test_l'] == 0]
     prob_high = M['y_prob_l'][M['y_test_l'] == 1]
     
-    fig = px.histogram(x=prob_low, nbins=20, color_discrete_sequence=['blue'])
+    fig = px.histogram(x=prob_low, nbinsx=20, marker_color='blue', opacity=0.6, name='Low Rent')
     fig.add_histogram(x=prob_high, nbinsx=20, marker_color='red', opacity=0.6, name='High Rent')
     fig.add_vline(x=0.5, line_color='black', line_width=2)
     st.plotly_chart(fig, use_container_width=True)
@@ -540,8 +521,6 @@ elif page == "📊 High Rent Classifier":
             st.metric("Classification", label)
         with col2:
             st.metric("Probability of High Rent", f"{probability:.1%}")
-        
-        style_metric_cards(border_left_color="#3498db")
         gauge_chart = go.Figure(go.Indicator(
             mode="gauge+number",
             value=probability * 100,
