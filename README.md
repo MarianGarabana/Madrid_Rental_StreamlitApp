@@ -9,7 +9,7 @@ A Streamlit application that brings the full Madrid rental housing analysis to l
 
 ## Live App
 
-> 🚀 **[Launch App on Streamlit Cloud]([https://your-app-url.streamlit.app](https://madridrentalapp-mariangarabana.streamlit.app/))** ← replace with your deployed URL
+> 🚀 **[Launch App on Streamlit Cloud]([https://your-app-url.streamlit.app](https://madridrentalapp-mariangarabana.streamlit.app/))**
 
 ---
 
