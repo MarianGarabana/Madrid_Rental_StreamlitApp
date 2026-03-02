@@ -371,7 +371,7 @@ elif page == "🏘️ Property Segments":
         Median_SqMt=('Sq.Mt', 'median'),
         Median_Floor=('Floor', 'median'),
         Pct_Outer=('Outer', 'mean'),
-    )
+    ).reset_index()
 
     st.dataframe(summary)
 
