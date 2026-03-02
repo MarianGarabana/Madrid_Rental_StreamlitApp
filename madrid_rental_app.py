@@ -17,6 +17,12 @@ from sklearn.metrics import (r2_score, mean_squared_error, mean_absolute_error,
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 import statsmodels.api as sm
 
+from streamlit_extras.stoggle import stoggle
+from streamlit_extras.metric_cards import style_metric_cards
+from streamlit_extras.colored_header import colored_header
+from streamlit_extras.annotated_text import annotated_text
+from streamlit_extras.metric_cards import style_metric_cards
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # APP CONFIG
@@ -308,6 +314,10 @@ df['Segment'] = df['Cluster'].map(lambda c: M['segment_labels'][c][0])
 # NAVIGATION
 # ══════════════════════════════════════════════════════════════════════════════
 # TODO: style the sidebar however you like (logo, colours, etc.)
+stoggle(
+    "ℹ️ About this app",
+    "Explore Madrid's rental market through clustering, regression, and classification models trained on real listing data."
+)
 
 page = st.sidebar.radio("Navigate", [
     "🔍 Market Explorer",
@@ -316,8 +326,11 @@ page = st.sidebar.radio("Navigate", [
     "📊 High Rent Classifier",
 ])
 
-st.title(page)
-st.divider()
+colored_header(
+    label=page,
+    description="Madrid Rental Market Analysis",
+    color_name="blue-70" 
+)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -340,6 +353,13 @@ if page == "🔍 Market Explorer":
         st.metric("Avg Square Meters", filtered['Sq.Mt'].mean().round(2))
     with col4:
         st.metric("Avg Price per m2", filtered['Price_per_sqm'].mean().round(2))
+    
+    style_metric_cards(
+        background_color="#f8f9fa",
+        border_left_color="#6c63ff",  # accent colour on left edge
+        border_color="#eeeeee",
+        box_shadow=True,
+    )
 
     fig = px.histogram(filtered, x='Rent', nbins=40)
     fig.add_vline(x=filtered['Rent'].median(), line_width=2, line_color="red")
@@ -355,7 +375,10 @@ if page == "🔍 Market Explorer":
     fig = px.imshow(filtered[['Rent','Sq.Mt','Bedrooms','Floor','Outer','Elevator','Price_per_sqm']].corr(), text_auto='.2f', color_continuous_scale='RdBu_r')
     st.plotly_chart(fig, use_container_width=True)
 
-    st.dataframe(filtered)
+    from streamlit_extras.dataframe_explorer import dataframe_explorer
+
+    filtered_view = dataframe_explorer(filtered, case=False)
+    st.dataframe(filtered_view, use_container_width=True)
 
 
 
@@ -383,6 +406,7 @@ elif page == "🏘️ Property Segments":
     for cluster_id, (name, desc) in M['segment_labels'].items():
         with st.expander(f"{name}"):
             st.write(desc)
+            annotated_text(desc)
     
     sqm = st.number_input("Square meters", min_value=0, max_value=1000, value=100)
     bedrooms = st.number_input("Bedrooms", min_value=0, max_value=10, value=2)
@@ -412,6 +436,13 @@ elif page == "💶 Rent Predictor":
         st.metric("RMSE", f"{M['rmse_r']:.2f}")
     with col3:
         st.metric("MAE", f"{M['mae_r']:.2f}")
+    
+    style_metric_cards(
+        background_color="#f8f9fa",
+        border_left_color="#6c63ff",  # accent colour on left edge
+        border_color="#eeeeee",
+        box_shadow=True,
+    )
 
     coef_plot = M['coef_df'][M['coef_df']['Feature'] != 'const'].copy()
     coef_plot['Direction'] = coef_plot['Effect (€)'].apply(lambda x: 'Increases rent' if x > 0 else 'Decreases rent')
@@ -470,6 +501,13 @@ elif page == "📊 High Rent Classifier":
         st.metric("AUC Test", f"{M['auc_test_l']:.2f}")
     with col3:
         st.metric("AUC Gap", f"{M['auc_train_l'] - M['auc_test_l']:.2f}")
+    
+    style_metric_cards(
+        background_color="#f8f9fa",
+        border_left_color="#6c63ff",  # accent colour on left edge
+        border_color="#eeeeee",
+        box_shadow=True,
+    )
     
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=M['fpr_train'], y=M['tpr_train'], mode='lines', name='Train'))
