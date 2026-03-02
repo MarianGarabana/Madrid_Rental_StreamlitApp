@@ -1,8 +1,6 @@
-<<<<<<< HEAD
-=======
+
 streamlit
 streamlit-extras
->>>>>>> be2c94438cfc1ff1707d2708d656945ecbf8f861
 pandas
 numpy
 plotly
