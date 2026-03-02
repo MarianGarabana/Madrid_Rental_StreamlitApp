@@ -6,4 +6,3 @@ plotly
 scikit-learn
 statsmodels
 openpyxl
-streamlit-extras
