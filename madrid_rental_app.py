@@ -21,10 +21,6 @@ from streamlit_extras.stoggle import stoggle
 from streamlit_extras.metric_cards import style_metric_cards
 from streamlit_extras.colored_header import colored_header
 from streamlit_extras.annotated_text import annotated_text
-<<<<<<< HEAD
-from streamlit_extras.metric_cards import style_metric_cards
-=======
->>>>>>> be2c94438cfc1ff1707d2708d656945ecbf8f861
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -357,16 +353,7 @@ if page == "🔍 Market Explorer":
     with col4:
         st.metric("Avg Price per m2", filtered['Price_per_sqm'].mean().round(2))
     
-<<<<<<< HEAD
-    style_metric_cards(
-        background_color="#f8f9fa",
-        border_left_color="#6c63ff",  # accent colour on left edge
-        border_color="#eeeeee",
-        box_shadow=True,
-    )
-=======
     style_metric_cards(border_left_color="#3498db")
->>>>>>> be2c94438cfc1ff1707d2708d656945ecbf8f861
 
     fig = px.histogram(filtered, x='Rent', nbins=40)
     fig.add_vline(x=filtered['Rent'].median(), line_width=2, line_color="red")
@@ -395,19 +382,11 @@ if page == "🔍 Market Explorer":
 elif page == "🏘️ Property Segments":
 
     summary = df.groupby('Segment').agg(
-<<<<<<< HEAD
-      Properties=('Rent', 'count'),
-      Median_rent=('Rent', 'median'),
-      Median_SqMt=('Sq.Mt', 'median'),
-      Median_Floor=('Floor', 'median'),
-      Pct_Outer=('Outer', 'mean'),).reset_index()
-=======
         Properties=('Rent', 'count'),
         Median_rent=('Rent', 'median'),
         Median_SqMt=('Sq.Mt', 'median'),
         Median_Floor=('Floor', 'median'),
         Pct_Outer=('Outer', 'mean'),).reset_index()  
->>>>>>> be2c94438cfc1ff1707d2708d656945ecbf8f861
 
     st.dataframe(summary)
 
@@ -420,10 +399,6 @@ elif page == "🏘️ Property Segments":
 
     for cluster_id, (name, desc) in M['segment_labels'].items():
         with st.expander(f"{name}"):
-<<<<<<< HEAD
-            st.write(desc)
-=======
->>>>>>> be2c94438cfc1ff1707d2708d656945ecbf8f861
             annotated_text(desc)
     
     sqm = st.number_input("Square meters", min_value=0, max_value=1000, value=100)
@@ -455,16 +430,7 @@ elif page == "💶 Rent Predictor":
     with col3:
         st.metric("MAE", f"{M['mae_r']:.2f}")
     
-<<<<<<< HEAD
-    style_metric_cards(
-        background_color="#f8f9fa",
-        border_left_color="#6c63ff",  # accent colour on left edge
-        border_color="#eeeeee",
-        box_shadow=True,
-    )
-=======
     style_metric_cards(border_left_color="#3498db")
->>>>>>> be2c94438cfc1ff1707d2708d656945ecbf8f861
 
     coef_plot = M['coef_df'][M['coef_df']['Feature'] != 'const'].copy()
     coef_plot['Direction'] = coef_plot['Effect (€)'].apply(lambda x: 'Increases rent' if x > 0 else 'Decreases rent')
@@ -524,16 +490,7 @@ elif page == "📊 High Rent Classifier":
     with col3:
         st.metric("AUC Gap", f"{M['auc_train_l'] - M['auc_test_l']:.2f}")
     
-<<<<<<< HEAD
-    style_metric_cards(
-        background_color="#f8f9fa",
-        border_left_color="#6c63ff",  # accent colour on left edge
-        border_color="#eeeeee",
-        box_shadow=True,
-    )
-=======
     style_metric_cards(border_left_color="#3498db")
->>>>>>> be2c94438cfc1ff1707d2708d656945ecbf8f861
     
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=M['fpr_train'], y=M['tpr_train'], mode='lines', name='Train'))
@@ -583,11 +540,8 @@ elif page == "📊 High Rent Classifier":
             st.metric("Classification", label)
         with col2:
             st.metric("Probability of High Rent", f"{probability:.1%}")
-<<<<<<< HEAD
-=======
         
         style_metric_cards(border_left_color="#3498db")
->>>>>>> be2c94438cfc1ff1707d2708d656945ecbf8f861
         gauge_chart = go.Figure(go.Indicator(
             mode="gauge+number",
             value=probability * 100,
