@@ -1,8 +1,11 @@
-
 # Madrid Rental Market — Interactive ML Dashboard
 
-> A Streamlit application analyzing Madrid's rental housing market through machine learning.  
+> A Streamlit application analyzing Madrid's rental housing market through machine learning.
 > Built for the Machine Learning I course · MBDS · IE University · 2026
+
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![scikit-learn](https://img.shields.io/badge/scikit--learn-ML-F7931E?logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
 
 **Live App:** [madridrentalapp-mariangarabana.streamlit.app](https://madridrentalapp-mariangarabana.streamlit.app/)
 
@@ -39,7 +42,7 @@ This dashboard brings a full end-to-end machine learning pipeline to life using 
 
 ### Phase 2 — Association Analysis
 - Apriori algorithm applied to property segments
-- Evaluated by support, confidence, and lift (see notebook)
+- Evaluated by support, confidence, and lift
 
 ### Phase 3 — OLS Linear Regression
 - VIF-based multicollinearity filtering (threshold = 10)
@@ -54,6 +57,76 @@ This dashboard brings a full end-to-end machine learning pipeline to life using 
 
 ---
 
+## Tech Stack
+
+| Layer | Tools |
+|---|---|
+| **App Framework** | [Streamlit](https://streamlit.io/), streamlit-extras |
+| **Data** | pandas, numpy, openpyxl |
+| **Machine Learning** | scikit-learn (KMeans, RFECV, train_test_split) |
+| **Statistics** | statsmodels (OLS, Logit, VIF) |
+| **Visualization** | Plotly Express, Plotly Graph Objects |
+
+---
+
 ## Project Structure
 
+```
+MadridRental/
+├── madrid_rental_app.py      # Main Streamlit application
+├── requirements.txt          # Python dependencies
+├── README.md
+└── data/
+    └── Houses for rent in Madrid.xlsx   # ~2,100 Idealista listings
+```
 
+---
+
+## Dataset
+
+- **Source:** Idealista (Madrid rental listings)
+- **Size:** 2,100 raw → 2,089 after cleaning
+- **Raw columns:** Rent, Area (Sq.Mt), Bedrooms, Floor, Outer, Elevator, District, Address, Penthouse, Cottage, Duplex, Semidetached
+- **Engineered columns:** `Is_Special`, `Price_per_sqm`, `SqMt_per_Bed`, `District_Premium`, `Zone`, `Is_Central`, `Is_Studio`, `High_Rent`, `Cluster`, `Segment`
+
+> The dataset is included in this repository under `data/`. It is used for academic purposes only.
+
+---
+
+## Local Setup
+
+**1. Clone the repository**
+```bash
+git clone https://github.com/mariangarabana/MadridRental.git
+cd MadridRental
+```
+
+**2. Create and activate a virtual environment** *(recommended)*
+```bash
+python -m venv venv
+source venv/bin/activate      # macOS/Linux
+venv\Scripts\activate         # Windows
+```
+
+**3. Install dependencies**
+```bash
+pip install -r requirements.txt
+```
+
+**4. Run the app**
+```bash
+streamlit run madrid_rental_app.py
+```
+
+The app will open at `http://localhost:8501`.
+
+---
+
+## Course Info
+
+| | |
+|---|---|
+| **Course** | Machine Learning I |
+| **Program** | Master in Big Data & Business Analytics (MBDS) |
+| **Institution** | IE University |
+| **Year** | 2026 |
