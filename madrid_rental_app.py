@@ -627,7 +627,7 @@ elif page == "🔗 Association Rules":
         rules = association_rules(freq, metric='lift', min_threshold=1.0, num_itemsets=len(freq))
         rules['antecedents'] = rules['antecedents'].apply(lambda x: ', '.join(sorted(x)))
         rules['consequents'] = rules['consequents'].apply(lambda x: ', '.join(sorted(x)))
-        rules['confidence_diff'] = rules['confidence'] - rules['consequent support']
+        rules['confidence_diff'] = (rules['confidence'] - rules['consequent support']).abs()
         lo = np.minimum(rules['consequent support'], rules['confidence'])
         hi = np.maximum(rules['consequent support'], rules['confidence'])
         rules['confidence_ratio'] = np.where(hi == 0, 0.0, 1 - lo / hi)
@@ -639,14 +639,14 @@ elif page == "🔗 Association Rules":
     col_conf, col_lift, col_supp = st.columns(3)
     min_conf = col_conf.slider("Min Confidence", 0.0, 1.0, 0.5, step=0.05,
                                help="How often the rule is correct when the antecedent is present.")
-    min_lift = col_lift.slider("Min Lift", 1.0, 5.0, 1.2, step=0.1,
+    min_lift = col_lift.slider("Min Lift", 1.0, 12.0, 1.2, step=0.1,
                                help="How much more likely the consequent is than by chance. >1 = attraction.")
     min_supp = col_supp.slider("Min Rule Support", 0.0, 0.20, 0.03, step=0.005,
                                help="Fraction of all listings where both antecedent and consequent appear together.")
 
     col_cdiff, col_cratio = st.columns(2)
-    min_cdiff = col_cdiff.slider("Min Confidence Difference", -1.0, 1.0, 0.0, step=0.05,
-                                 help="Confidence minus the consequent's base rate. Positive = rule beats the prior.")
+    min_cdiff = col_cdiff.slider("Min Confidence Difference", 0.0, 1.0, 0.0, step=0.05,
+                                 help="Absolute difference between confidence and the consequent's base rate. 0 = rule matches prior, 1 = maximum divergence.")
     min_cratio = col_cratio.slider("Min Confidence Ratio", 0.0, 1.0, 0.0, step=0.05,
                                    help="1 − min(prior, confidence) / max(prior, confidence). 0 = no change from prior, 1 = maximum shift.")
 
