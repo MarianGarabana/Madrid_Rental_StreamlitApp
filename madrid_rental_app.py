@@ -21,6 +21,7 @@ from streamlit_extras.metric_cards import style_metric_cards
 from streamlit_extras.dataframe_explorer import dataframe_explorer
 from streamlit_extras.chart_container import chart_container
 from streamlit_extras.add_vertical_space import add_vertical_space
+from mlxtend.frequent_patterns import apriori, association_rules
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -355,6 +356,7 @@ with st.sidebar:
     page = st.radio("Navigate", [
         "🔍 Market Explorer",
         "🏘️ Property Segments",
+        "🔗 Association Rules",
         "💶 Rent Predictor",
         "📊 High Rent Classifier",
     ])
@@ -445,7 +447,7 @@ if page == "🔍 Market Explorer":
 
         # Correlation heatmap
         fig = px.imshow(
-            filtered[['Rent','Sq.Mt','Bedrooms','Floor','Outer','Elevator','Price_per_sqm']].corr(),
+            filtered[['Rent','Sq.Mt','Bedrooms','Floor','Outer','Elevator']].corr(),
             text_auto='.2f', color_continuous_scale='RdBu_r', title='Correlation Matrix'
         )
         st.plotly_chart(fig, use_container_width=True)
@@ -597,7 +599,91 @@ elif page == "🏘️ Property Segments":
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# PAGE 3 — RENT PREDICTOR
+# PAGE 3 — ASSOCIATION RULES
+# ══════════════════════════════════════════════════════════════════════════════
+elif page == "🔗 Association Rules":
+
+    with st.expander("How this works"):
+        st.write(
+            "Apriori algorithm applied to binary property attributes and market segment labels. "
+            "Each listing is encoded as a basket of items: exterior-facing, has elevator, "
+            "special property type, central district, studio, high rent, and its market segment. "
+            "The algorithm surfaces combinations that co-occur more often than chance — "
+            "quantified by support (how common the combination is), confidence (how often the "
+            "consequent follows the antecedent), and lift (how much more likely than random). "
+            "Lift > 1 means the items attract each other; lift < 1 means they repel."
+        )
+
+    @st.cache_data
+    def compute_association_rules(_df, min_support=0.03):
+        binary_cols = ['Outer', 'Elevator', 'Is_Special', 'Is_Central', 'Is_Studio', 'High_Rent']
+        seg_dummies = pd.get_dummies(_df['Segment'], prefix='Seg').astype(bool)
+        basket = pd.concat([_df[binary_cols].astype(bool), seg_dummies], axis=1)
+
+        freq = apriori(basket, min_support=min_support, use_colnames=True)
+        if freq.empty:
+            return pd.DataFrame()
+
+        rules = association_rules(freq, metric='lift', min_threshold=1.0, num_itemsets=len(freq))
+        rules['antecedents'] = rules['antecedents'].apply(lambda x: ', '.join(sorted(x)))
+        rules['consequents'] = rules['consequents'].apply(lambda x: ', '.join(sorted(x)))
+        return rules.sort_values('lift', ascending=False).reset_index(drop=True)
+
+    with st.spinner("Mining association rules…"):
+        all_rules = compute_association_rules(df, min_support=0.03)
+
+    col_conf, col_lift = st.columns(2)
+    min_conf = col_conf.slider("Min Confidence", 0.0, 1.0, 0.5, step=0.05,
+                               help="How often the rule is correct when the antecedent is present.")
+    min_lift = col_lift.slider("Min Lift", 1.0, 5.0, 1.2, step=0.1,
+                               help="How much more likely the consequent is than by chance. >1 = attraction.")
+
+    filtered_rules = all_rules[
+        (all_rules['confidence'] >= min_conf) & (all_rules['lift'] >= min_lift)
+    ].copy()
+
+    st.metric("Rules found", len(filtered_rules))
+
+    if filtered_rules.empty:
+        st.info("No rules match the current filters — try lowering Confidence or Lift.")
+    else:
+        display_cols = ['antecedents', 'consequents', 'support', 'confidence', 'lift', 'leverage']
+        st.dataframe(
+            filtered_rules[display_cols].round(4),
+            use_container_width=True
+        )
+
+        add_vertical_space(1)
+
+        top_n = min(15, len(filtered_rules))
+        top = filtered_rules.head(top_n).copy()
+        top['rule'] = top['antecedents'] + '  →  ' + top['consequents']
+
+        fig = px.bar(
+            top, x='lift', y='rule', orientation='h',
+            color='confidence', color_continuous_scale='Reds',
+            title=f'Top {top_n} Rules by Lift',
+            labels={'lift': 'Lift', 'rule': '', 'confidence': 'Confidence'},
+        )
+        fig.update_layout(yaxis={'categoryorder': 'total ascending'}, height=max(400, top_n * 38))
+        st.plotly_chart(fig, use_container_width=True)
+
+        add_vertical_space(1)
+
+        # Scatter: support vs confidence, sized by lift
+        fig2 = px.scatter(
+            filtered_rules, x='support', y='confidence', size='lift', color='lift',
+            color_continuous_scale='Reds',
+            hover_data={'antecedents': True, 'consequents': True, 'lift': ':.3f'},
+            title='Support vs Confidence (bubble size = Lift)',
+            labels={'support': 'Support', 'confidence': 'Confidence', 'lift': 'Lift'},
+        )
+        fig2.add_hline(y=min_conf, line_dash='dot', line_color='#2C3E50')
+        st.plotly_chart(fig2, use_container_width=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE 4 — RENT PREDICTOR
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "💶 Rent Predictor":
 
@@ -743,6 +829,18 @@ elif page == "📊 High Rent Classifier":
             "multiplicative effect on the probability of High Rent."
         )
 
+    st.subheader("Classification Threshold")
+    threshold_val = st.slider(
+        "Probability cutoff for High Rent classification", 0.05, 0.95, 0.50, step=0.05,
+        key='class_threshold',
+        help="Probability above this value → classified as High Rent. "
+             "Lower = more sensitive (catches more High Rent but more false alarms). "
+             "This threshold applies to both the performance metrics and the classifier below."
+    )
+    y_prob_arr = np.array(M['y_prob_l'])
+    y_test_arr = np.array(M['y_test_l'])
+    y_thresh   = (y_prob_arr >= threshold_val).astype(int)
+
     tab_perf, tab_classify = st.tabs(["📈 Model Performance", "🔮 Classify Property"])
 
     with tab_perf:
@@ -793,20 +891,12 @@ elif page == "📊 High Rent Classifier":
             fig.add_trace(go.Histogram(x=prob_high, nbinsx=20, marker_color='#C0392B',
                                        opacity=0.6, name='High Rent'))
             fig.update_layout(barmode='overlay', title='Probability Separation by Class')
-            fig.add_vline(x=0.5, line_color='#2C3E50', line_width=2)
+            fig.add_vline(x=threshold_val, line_color='#2C3E50', line_width=2,
+                          annotation_text=f"Threshold: {threshold_val:.2f}",
+                          annotation_position="top right")
             st.plotly_chart(fig, use_container_width=True)
 
-        # Interactive threshold slider
         st.subheader("Threshold Sensitivity")
-        threshold_val = st.slider(
-            "Classification threshold", 0.05, 0.95, 0.50, step=0.05,
-            help="Probability above this value → classified as High Rent. "
-                 "Lower = more sensitive (catches more High Rent but more false alarms)."
-        )
-        y_prob_arr = np.array(M['y_prob_l'])
-        y_test_arr = np.array(M['y_test_l'])
-        y_thresh   = (y_prob_arr >= threshold_val).astype(int)
-
         tc1, tc2, tc3, tc4 = st.columns(4)
         tc1.metric("Accuracy",  f"{accuracy_score(y_test_arr, y_thresh):.3f}")
         tc2.metric("Precision", f"{precision_score(y_test_arr, y_thresh, zero_division=0):.3f}")
@@ -853,7 +943,7 @@ elif page == "📊 High Rent Classifier":
             input_df    = pd.DataFrame([input_dict])[M['logit_features']]
             input_sm    = sm.add_constant(input_df, has_constant='add')
             probability = float(M['logit_model'].predict(input_sm)[0])
-            label = "🔴 High Rent" if probability >= 0.5 else "🟢 Low Rent"
+            label = "🔴 High Rent" if probability >= threshold_val else "🟢 Low Rent"
 
             col_r1, col_r2 = st.columns(2)
             col_r1.metric("Classification",           label)
@@ -866,10 +956,10 @@ elif page == "📊 High Rent Classifier":
                 title={'text': "Probability of High Rent"},
                 gauge={
                     'axis': {'range': [0, 100]},
-                    'bar': {'color': '#C0392B' if probability >= 0.5 else '#27AE60'},
-                    'steps': [{'range': [0, 50],   'color': '#eafaf1'},
-                               {'range': [50, 100], 'color': '#fdedec'}],
-                    'threshold': {'line': {'color': '#2C3E50', 'width': 3}, 'value': 50}
+                    'bar': {'color': '#C0392B' if probability >= threshold_val else '#27AE60'},
+                    'steps': [{'range': [0, threshold_val * 100],   'color': '#eafaf1'},
+                               {'range': [threshold_val * 100, 100], 'color': '#fdedec'}],
+                    'threshold': {'line': {'color': '#2C3E50', 'width': 3}, 'value': threshold_val * 100}
                 }
             ))
             st.plotly_chart(gauge_chart, use_container_width=True)
