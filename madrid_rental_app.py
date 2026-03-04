@@ -625,6 +625,8 @@ elif page == "🔗 Association Rules":
             return pd.DataFrame()
 
         rules = association_rules(freq, metric='lift', min_threshold=1.0, num_itemsets=len(freq))
+        rules['n_antecedents'] = rules['antecedents'].apply(len)
+        rules['n_consequents'] = rules['consequents'].apply(len)
         rules['antecedents'] = rules['antecedents'].apply(lambda x: ', '.join(sorted(x)))
         rules['consequents'] = rules['consequents'].apply(lambda x: ', '.join(sorted(x)))
         rules['confidence_diff'] = (rules['confidence'] - rules['consequent support']).abs()
@@ -650,12 +652,22 @@ elif page == "🔗 Association Rules":
     min_cratio = col_cratio.slider("Min Confidence Ratio", 0.0, 1.0, 0.0, step=0.05,
                                    help="1 − min(prior, confidence) / max(prior, confidence). 0 = no change from prior, 1 = maximum shift.")
 
+    max_ant = int(all_rules['n_antecedents'].max()) if not all_rules.empty else 3
+    max_con = int(all_rules['n_consequents'].max()) if not all_rules.empty else 3
+    col_nant, col_ncon = st.columns(2)
+    sel_ant = col_nant.slider("Max Antecedents", 1, max_ant, max_ant,
+                              help="Keep only rules with at most this many antecedent items.")
+    sel_con = col_ncon.slider("Max Consequents", 1, max_con, max_con,
+                              help="Keep only rules with at most this many consequent items.")
+
     filtered_rules = all_rules[
         (all_rules['confidence'] >= min_conf) &
         (all_rules['lift'] >= min_lift) &
         (all_rules['support'] >= min_supp) &
         (all_rules['confidence_diff'] >= min_cdiff) &
-        (all_rules['confidence_ratio'] >= min_cratio)
+        (all_rules['confidence_ratio'] >= min_cratio) &
+        (all_rules['n_antecedents'] <= sel_ant) &
+        (all_rules['n_consequents'] <= sel_con)
     ].copy()
 
     st.metric("Rules found", len(filtered_rules))
