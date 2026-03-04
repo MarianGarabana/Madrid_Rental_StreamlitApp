@@ -38,11 +38,19 @@ st.markdown("""
 [data-testid="stSidebar"] {
     background-color: #FDF6EC;
 }
+[data-testid="stSidebar"] * {
+    color: #2C3E50 !important;
+}
 [data-testid="stMetric"] {
     background-color: #FDF6EC;
     border-left: 4px solid #C0392B;
     border-radius: 6px;
     padding: 12px 16px;
+}
+[data-testid="stMetricLabel"],
+[data-testid="stMetricValue"],
+[data-testid="stMetricDelta"] {
+    color: #2C3E50 !important;
 }
 [data-testid="stTabs"] [role="tab"] {
     font-weight: 600;
