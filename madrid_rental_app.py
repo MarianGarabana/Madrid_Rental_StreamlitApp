@@ -627,19 +627,35 @@ elif page == "🔗 Association Rules":
         rules = association_rules(freq, metric='lift', min_threshold=1.0, num_itemsets=len(freq))
         rules['antecedents'] = rules['antecedents'].apply(lambda x: ', '.join(sorted(x)))
         rules['consequents'] = rules['consequents'].apply(lambda x: ', '.join(sorted(x)))
+        rules['confidence_diff'] = rules['confidence'] - rules['consequent support']
+        lo = np.minimum(rules['consequent support'], rules['confidence'])
+        hi = np.maximum(rules['consequent support'], rules['confidence'])
+        rules['confidence_ratio'] = np.where(hi == 0, 0.0, 1 - lo / hi)
         return rules.sort_values('lift', ascending=False).reset_index(drop=True)
 
     with st.spinner("Mining association rules…"):
         all_rules = compute_association_rules(df, min_support=0.03)
 
-    col_conf, col_lift = st.columns(2)
+    col_conf, col_lift, col_supp = st.columns(3)
     min_conf = col_conf.slider("Min Confidence", 0.0, 1.0, 0.5, step=0.05,
                                help="How often the rule is correct when the antecedent is present.")
     min_lift = col_lift.slider("Min Lift", 1.0, 5.0, 1.2, step=0.1,
                                help="How much more likely the consequent is than by chance. >1 = attraction.")
+    min_supp = col_supp.slider("Min Rule Support", 0.0, 0.20, 0.03, step=0.005,
+                               help="Fraction of all listings where both antecedent and consequent appear together.")
+
+    col_cdiff, col_cratio = st.columns(2)
+    min_cdiff = col_cdiff.slider("Min Confidence Difference", -1.0, 1.0, 0.0, step=0.05,
+                                 help="Confidence minus the consequent's base rate. Positive = rule beats the prior.")
+    min_cratio = col_cratio.slider("Min Confidence Ratio", 0.0, 1.0, 0.0, step=0.05,
+                                   help="1 − min(prior, confidence) / max(prior, confidence). 0 = no change from prior, 1 = maximum shift.")
 
     filtered_rules = all_rules[
-        (all_rules['confidence'] >= min_conf) & (all_rules['lift'] >= min_lift)
+        (all_rules['confidence'] >= min_conf) &
+        (all_rules['lift'] >= min_lift) &
+        (all_rules['support'] >= min_supp) &
+        (all_rules['confidence_diff'] >= min_cdiff) &
+        (all_rules['confidence_ratio'] >= min_cratio)
     ].copy()
 
     st.metric("Rules found", len(filtered_rules))
@@ -647,7 +663,8 @@ elif page == "🔗 Association Rules":
     if filtered_rules.empty:
         st.info("No rules match the current filters — try lowering Confidence or Lift.")
     else:
-        display_cols = ['antecedents', 'consequents', 'support', 'confidence', 'lift', 'leverage']
+        display_cols = ['antecedents', 'consequents', 'support', 'confidence', 'lift',
+                        'confidence_diff', 'confidence_ratio', 'leverage']
         st.dataframe(
             filtered_rules[display_cols].round(4),
             use_container_width=True
