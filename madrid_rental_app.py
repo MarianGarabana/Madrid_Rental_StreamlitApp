@@ -69,6 +69,49 @@ hr { border-color: #D9D9D9; }
     background-color: #9A1F6E;
     color: #FFFFFF;
 }
+.chart-tooltip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid #B72683;
+    color: #B72683;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: help;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.chart-tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 130%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333333;
+    color: #ffffff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 400;
+    width: 280px;
+    white-space: normal;
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+    text-align: left;
+}
+.chart-tooltip:hover::after {
+    opacity: 1;
+}
+[data-testid="stExpander"] {
+    background-color: #FFFFFF;
+    border-radius: 8px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -356,6 +399,17 @@ df['Segment'] = df['Cluster'].map(lambda c: M['segment_labels'][c][0])
 style_metric_cards(background_color="#FFFFFF", border_left_color="#B72683", border_radius_px=8)
 
 
+def chart_header(title, description):
+    desc_esc = description.replace('"', '&quot;')
+    st.markdown(
+        f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">'
+        f'<span style="font-weight:600;font-size:1.05rem;">{title}</span>'
+        f'<span class="chart-tooltip" data-tooltip="{desc_esc}">?</span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # SIDEBAR
 # ══════════════════════════════════════════════════════════════════════════════
@@ -455,37 +509,37 @@ if page == "Market Explorer":
         # Annotated histogram
         median_val = filtered['Rent'].median()
         with chart_container(filtered[['Rent']]):
-            fig = px.histogram(filtered, x='Rent', nbins=40, title='Rent Distribution',
-                               color_discrete_sequence=['#B72683'])
+            fig = px.histogram(filtered, x='Rent', nbins=40,
+                               color_discrete_sequence=['#B72683'],
+                               labels={'Rent': '', 'count': ''})
+            fig.update_layout(xaxis_title='', yaxis_title='')
             fig.add_vline(x=median_val, line_width=2, line_color='#333333',
                           annotation_text=f"Median: €{median_val:,.0f}",
                           annotation_position="top right",
                           annotation_font_color='#333333')
-            st.caption("Distribution of monthly rent prices across the filtered selection. The vertical line marks the median rent.")
+            chart_header("Rent Distribution", "Distribution of monthly rent prices across the filtered selection. The vertical line marks the median rent.")
             st.plotly_chart(fig, use_container_width=True)
 
         # Box plot by district
         with chart_container(filtered[['District', 'Rent']]):
             fig = px.box(filtered, x='Rent', y='District',
-                         title='Rent Distribution by District',
                          color_discrete_sequence=['#B72683'])
-            fig.update_layout(yaxis={'categoryorder': 'median ascending'})
-            st.caption("Box plots showing the spread, median, and outliers of rent by district, ordered from lowest to highest median.")
+            fig.update_layout(yaxis={'categoryorder': 'median ascending'}, xaxis_title='', yaxis_title='')
+            chart_header("Rent Distribution by District", "Box plots showing the spread, median, and outliers of rent by district, ordered from lowest to highest median.")
             st.plotly_chart(fig, use_container_width=True)
 
         # Scatter
         with chart_container(filtered[['Sq.Mt', 'Rent', 'District']]):
             fig = px.scatter(filtered, x='Sq.Mt', y='Rent', color='District',
-                             size='Rent', title='Rent vs Size', opacity=0.7)
-            st.caption("Scatter plot of property size (m²) against monthly rent, colored by district. Bubble size scales with rent value.")
+                             size='Rent', opacity=0.7)
+            chart_header("Rent vs Size", "Scatter plot of property size (m²) against monthly rent, colored by district. Bubble size scales with rent value.")
             st.plotly_chart(fig, use_container_width=True)
 
         # Correlation heatmap
-        st.markdown("**Correlation Matrix**")
-        st.caption("Pairwise Pearson correlations between numeric features. Dark red indicates strong positive correlation; dark blue indicates inverse correlation.")
+        chart_header("Correlation Matrix", "Pairwise Pearson correlations between numeric features. Dark red indicates strong positive correlation; dark blue indicates inverse correlation.")
         fig = px.imshow(
             filtered[['Rent','Sq.Mt','Bedrooms','Floor','Outer','Elevator']].corr(),
-            text_auto='.2f', color_continuous_scale=[[0,'#E2F46E'],[0.5,'#FFFFFF'],[1,'#B72683']], title='Correlation Matrix'
+            text_auto='.2f', color_continuous_scale=[[0,'#E2F46E'],[0.5,'#FFFFFF'],[1,'#B72683']]
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -498,20 +552,18 @@ if page == "Market Explorer":
         zone_summary.columns = ['Zone', 'Median Rent', 'Mean Rent', 'Count']
         zone_summary = zone_summary.sort_values('Median Rent', ascending=False)
 
-        st.markdown("**Median Rent by Geographic Zone**")
-        st.caption("Aggregated median rent grouped by broad geographic zone. Bar color reflects the rent level — darker red means higher median rent.")
+        chart_header("Median Rent by Geographic Zone", "Aggregated median rent grouped by broad geographic zone. Bar color reflects the rent level — darker red means higher median rent.")
         fig = px.bar(zone_summary, x='Zone', y='Median Rent',
-                     title='Median Rent by Geographic Zone',
-                     color='Median Rent', color_continuous_scale='RdPu', text='Median Rent')
+                     color='Median Rent', color_continuous_scale='RdPu', text='Median Rent',
+                     labels={'Zone': '', 'Median Rent': ''})
         fig.update_traces(texttemplate='€%{text:,.0f}', textposition='outside')
+        fig.update_layout(xaxis_title='', yaxis_title='')
         st.plotly_chart(fig, use_container_width=True)
 
-        st.markdown("**Rent Distribution by Zone**")
-        st.caption("Box plots comparing the full rent spread across geographic zones, ordered by median rent. Whiskers extend to 1.5× IQR; dots are outliers.")
+        chart_header("Rent Distribution by Zone", "Box plots comparing the full rent spread across geographic zones, ordered by median rent. Whiskers extend to 1.5× IQR; dots are outliers.")
         fig = px.box(filtered, x='Rent', y='Zone',
-                     title='Rent Distribution by Zone',
                      color_discrete_sequence=['#B72683'])
-        fig.update_layout(yaxis={'categoryorder': 'median ascending'})
+        fig.update_layout(yaxis={'categoryorder': 'median ascending'}, xaxis_title='', yaxis_title='')
         st.plotly_chart(fig, use_container_width=True)
 
     with tab_data:
@@ -553,45 +605,48 @@ elif page == "Property Segments":
     tab_overview, tab_classify = st.tabs(["📊 Overview", "🔮 Classify Property"])
 
     with tab_overview:
-        # Segment cards
-        card_cols = st.columns(len(summary))
+        # Segment expanders
         for i, (_, row) in enumerate(summary.iterrows()):
-            color      = seg_colors[i % len(seg_colors)]
-            desc_short = seg_desc.get(row['Segment'], '')[:90] + '…'
-            with card_cols[i]:
-                st.markdown(f"""
-                <div style='border-left:4px solid {color}; background:#F4F4F4;
-                            border-radius:6px; padding:10px 12px; min-height:170px;'>
-                    <b style='color:{color}; font-size:0.85rem;'>{row['Segment']}</b><br>
-                    <small>🏠 {int(row['Properties'])} listings</small><br>
-                    <small>💶 €{int(row['Median_rent']):,} median</small><br>
-                    <small>📐 {int(row['Median_SqMt'])} m²</small><br><br>
-                    <small style='color:#7f8c8d;'>{desc_short}</small>
+            color     = seg_colors[i % len(seg_colors)]
+            full_desc = seg_desc.get(row['Segment'], '')
+            st.markdown(f"""
+            <details style="border:1px solid #e0e0e0; border-left:4px solid {color};
+                            border-radius:6px; margin-bottom:8px; background:#FFFFFF;">
+                <summary style="padding:12px 16px; font-weight:600; font-size:0.95rem;
+                                color:#333333; cursor:pointer; user-select:none;">
+                    {row['Segment']}
+                </summary>
+                <div style="padding:4px 16px 14px 16px; border-top:1px solid #f0f0f0;">
+                    <span style="margin-right:16px;">🏠 <b>{int(row['Properties'])}</b> listings</span>
+                    <span style="margin-right:16px;">💶 <b>€{int(row['Median_rent']):,}</b> median rent</span>
+                    <span>📐 <b>{int(row['Median_SqMt'])} m²</b> median size</span>
+                    <p style="margin-top:10px; color:#555555; margin-bottom:0;">{full_desc}</p>
                 </div>
-                """, unsafe_allow_html=True)
+            </details>
+            """, unsafe_allow_html=True)
 
         add_vertical_space(1)
 
         col_pie, col_bar = st.columns(2)
         with col_pie:
             fig = px.pie(summary, values='Properties', names='Segment',
-                         title='Share of Listings per Segment',
                          color_discrete_sequence=seg_colors, hole=0.35)
-            st.caption("Proportion of all listings assigned to each K-Means cluster. Larger slices represent the dominant rental stock in Madrid.")
+            chart_header("Share of Listings per Segment", "Proportion of all listings assigned to each K-Means cluster. Larger slices represent the dominant rental stock in Madrid.")
             st.plotly_chart(fig, use_container_width=True)
         with col_bar:
             fig = px.bar(summary.sort_values('Median_rent'), x='Segment', y='Median_rent',
-                         title='Median Rent by Segment',
-                         color='Median_rent', color_continuous_scale='RdPu', text='Median_rent')
+                         color='Median_rent', color_continuous_scale='RdPu', text='Median_rent',
+                         labels={'Segment': '', 'Median_rent': ''})
             fig.update_traces(texttemplate='€%{text:,.0f}', textposition='outside')
-            st.caption("Median monthly rent for each segment. Highlights the price gap between budget interiors and premium/estate properties.")
+            fig.update_layout(xaxis_title='', yaxis_title='')
+            chart_header("Median Rent by Segment", "Median monthly rent for each segment. Highlights the price gap between budget interiors and premium/estate properties.")
             st.plotly_chart(fig, use_container_width=True)
 
         # Scatter
         fig = px.scatter(df, x='Sq.Mt', y='Rent', color='Segment',
-                         size='Price_per_sqm', title='Rent vs Size by Segment',
+                         size='Price_per_sqm',
                          opacity=0.7, color_discrete_sequence=seg_colors)
-        st.caption("Each listing plotted by size (m²) vs. rent, colored by segment. Bubble size reflects price per m² — useful for spotting value vs. premium positioning within each cluster.")
+        chart_header("Rent vs Size by Segment", "Each listing plotted by size (m²) vs. rent, colored by segment. Bubble size reflects price per m² — useful for spotting value vs. premium positioning within each cluster.")
         st.plotly_chart(fig, use_container_width=True)
 
         # Radar chart — compare segments across normalised dimensions
@@ -616,10 +671,9 @@ elif page == "Property Segments":
             ))
         fig_radar.update_layout(
             polar={'radialaxis': {'visible': True, 'range': [0, 100]}},
-            title='Segment Profiles (each dimension normalised 0–100)',
             height=500,
         )
-        st.caption("Radar chart comparing all five segments across key dimensions, each normalised to 0–100. Larger area = more extreme profile; useful for spotting how clusters differ holistically.")
+        chart_header("Segment Profiles", "Radar chart comparing all five segments across key dimensions, each normalised to 0–100. Larger area = more extreme profile; useful for spotting how clusters differ holistically.")
         st.plotly_chart(fig_radar, use_container_width=True)
 
     with tab_classify:
@@ -736,11 +790,10 @@ elif page == "Association Rules":
         fig = px.bar(
             top, x='lift', y='rule', orientation='h',
             color='confidence', color_continuous_scale='RdPu',
-            title=f'Top {top_n} Rules by Lift',
             labels={'lift': 'Lift', 'rule': '', 'confidence': 'Confidence'},
         )
         fig.update_layout(yaxis={'categoryorder': 'total ascending'}, height=max(400, top_n * 38))
-        st.caption("Top rules ranked by lift — the ratio of observed co-occurrence to what would be expected by chance. Bar color encodes confidence: how reliably the consequent follows the antecedent.")
+        chart_header("Top Rules by Lift", "Top rules ranked by lift — the ratio of observed co-occurrence to what would be expected by chance. Bar color encodes confidence: how reliably the consequent follows the antecedent.")
         st.plotly_chart(fig, use_container_width=True)
 
         add_vertical_space(1)
@@ -750,11 +803,10 @@ elif page == "Association Rules":
             filtered_rules, x='support', y='confidence', size='lift', color='lift',
             color_continuous_scale='RdPu',
             hover_data={'antecedents': True, 'consequents': True, 'lift': ':.3f'},
-            title='Support vs Confidence (bubble size = Lift)',
             labels={'support': 'Support', 'confidence': 'Confidence', 'lift': 'Lift'},
         )
         fig2.add_hline(y=min_conf, line_dash='dot', line_color='#333333')
-        st.caption("Each rule plotted by how common it is (support) vs. how reliable it is (confidence). Bubble size and color encode lift — look for rules in the top-right with large bubbles for the strongest patterns.")
+        chart_header("Support vs Confidence", "Each rule plotted by how common it is (support) vs. how reliable it is (confidence). Bubble size and color encode lift — look for rules in the top-right with large bubbles for the strongest patterns.")
         st.plotly_chart(fig2, use_container_width=True)
 
 
@@ -789,31 +841,28 @@ elif page == "Rent Predictor":
             lambda x: 'Increases rent' if x > 0 else 'Decreases rent')
         fig = px.bar(coef_plot, x='Effect (€)', y='Feature', color='Direction',
                      orientation='h',
-                     color_discrete_map={'Increases rent': '#27AE60', 'Decreases rent': '#B72683'},
-                     title='Effect of Each Feature on Rent (€)')
-        st.caption("OLS regression coefficients expressed in euros. Each bar shows the estimated change in monthly rent for a one-unit increase in that feature, holding all others constant.")
+                     color_discrete_map={'Increases rent': '#27AE60', 'Decreases rent': '#B72683'})
+        chart_header("Feature Effects on Rent", "OLS regression coefficients expressed in euros. Each bar shows the estimated change in monthly rent for a one-unit increase in that feature, holding all others constant.")
         st.plotly_chart(fig, use_container_width=True)
 
         col_scatter, col_resid = st.columns(2)
         with col_scatter:
             fig = px.scatter(x=M['y_test_r'], y=M['y_pred_r'],
                              labels={'x': 'Actual Rent (€)', 'y': 'Predicted Rent (€)'},
-                             title='Actual vs Predicted Rent',
                              opacity=0.6, color_discrete_sequence=['#B72683'])
             min_v, max_v = float(M['y_test_r'].min()), float(M['y_test_r'].max())
             fig.add_shape(type='line', x0=min_v, y0=min_v, x1=max_v, y1=max_v,
                           line=dict(color='#333333', dash='dash'))
-            st.caption("Each point is a test-set property. Points near the dashed diagonal indicate accurate predictions; vertical spread reveals the model's error range.")
+            chart_header("Actual vs Predicted Rent", "Each point is a test-set property. Points near the dashed diagonal indicate accurate predictions; vertical spread reveals the model's error range.")
             st.plotly_chart(fig, use_container_width=True)
 
         with col_resid:
             residuals = np.array(M['y_pred_r']) - np.array(M['y_test_r'])
             fig = px.scatter(x=M['y_test_r'], y=residuals,
                              labels={'x': 'Actual Rent (€)', 'y': 'Residual (Predicted − Actual, €)'},
-                             title='Residuals vs Actual Rent',
                              opacity=0.6, color_discrete_sequence=['#3498DB'])
             fig.add_hline(y=0, line_dash='dash', line_color='#333333')
-            st.caption("Residuals should scatter randomly around zero (dashed line) with no visible pattern. A fan shape would signal heteroscedasticity; a curve would suggest a non-linear relationship.")
+            chart_header("Residuals vs Actual Rent", "Residuals should scatter randomly around zero (dashed line) with no visible pattern. A fan shape would signal heteroscedasticity; a curve would suggest a non-linear relationship.")
             st.plotly_chart(fig, use_container_width=True)
 
         # Q-Q plot — residual normality check
@@ -831,12 +880,11 @@ elif page == "Rent Predictor":
             name='Normal reference line',
         ))
         fig_qq.update_layout(
-            title='Q-Q Plot — Residual Normality Check',
             xaxis_title='Theoretical Quantiles',
             yaxis_title='Ordered Residuals (€)',
         )
+        chart_header("Q-Q Plot — Residual Normality Check", "Points following the dashed line indicate normally distributed residuals — a core OLS assumption. Deviation at the tails signals skewness or outliers.")
         st.plotly_chart(fig_qq, use_container_width=True)
-        st.caption("Points following the dashed line indicate normally distributed residuals — a core OLS assumption. Deviation at the tails signals skewness or outliers.")
 
     with tab_predict:
         st.subheader("Predict rent for a new property")
@@ -880,14 +928,13 @@ elif page == "Rent Predictor":
             # Position in distribution
             percentile = (df['Rent'] < prediction).mean() * 100
             fig_dist = px.histogram(df, x='Rent', nbins=40,
-                                    title='Where does this property sit in the market?',
                                     color_discrete_sequence=['#D9D9D9'])
             fig_dist.add_vline(x=prediction, line_color='#B72683', line_width=2,
                                annotation_text=f"Your property: €{prediction:,.0f}",
                                annotation_position="top right",
                                annotation_font_color='#B72683')
+            chart_header("Market Position", f"This predicted rent is higher than {percentile:.0f}% of all listings in the dataset.")
             st.plotly_chart(fig_dist, use_container_width=True)
-            st.caption(f"This predicted rent is higher than {percentile:.0f}% of all listings in the dataset.")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -927,10 +974,9 @@ elif page == "High Rent Classifier":
                                  line_color='#B72683'))
         fig.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode='lines',
                                  line=dict(dash='dash', color='#95a5a6'), name='Baseline'))
-        fig.update_layout(title='ROC Curve',
-                          xaxis_title='False Positive Rate',
+        fig.update_layout(xaxis_title='False Positive Rate',
                           yaxis_title='True Positive Rate')
-        st.caption("ROC curves for train and test sets. AUC measures the model's ability to rank High Rent above Low Rent listings. A near-zero train/test AUC gap confirms no meaningful overfitting.")
+        chart_header("ROC Curve", "ROC curves for train and test sets. AUC measures the model's ability to rank High Rent above Low Rent listings. A near-zero train/test AUC gap confirms no meaningful overfitting.")
         st.plotly_chart(fig, use_container_width=True)
 
         threshold_val = st.slider(
@@ -948,10 +994,9 @@ elif page == "High Rent Classifier":
             fig = px.imshow(confusion_matrix(y_test_arr, y_thresh), text_auto=True,
                             x=['Pred Low', 'Pred High'],
                             y=['Actual Low', 'Actual High'],
-                            color_continuous_scale='RdPu',
-                            title='Confusion Matrix')
+                            color_continuous_scale='RdPu')
+            chart_header("Confusion Matrix", "TN (top-left): correctly predicted Low Rent · FP (top-right): Low Rent wrongly flagged as High · FN (bottom-left): missed High Rent property · TP (bottom-right): correctly predicted High Rent")
             st.plotly_chart(fig, use_container_width=True)
-            st.caption("TN (top-left): correctly predicted Low Rent · FP (top-right): Low Rent wrongly flagged as High · FN (bottom-left): missed High Rent property · TP (bottom-right): correctly predicted High Rent")
 
         with col_sep:
             prob_low  = M['y_prob_l'][M['y_test_l'] == 0]
@@ -961,11 +1006,11 @@ elif page == "High Rent Classifier":
                                        opacity=0.6, name='Low Rent'))
             fig.add_trace(go.Histogram(x=prob_high, nbinsx=20, marker_color='#B72683',
                                        opacity=0.6, name='High Rent'))
-            fig.update_layout(barmode='overlay', title='Probability Separation by Class')
+            fig.update_layout(barmode='overlay')
             fig.add_vline(x=threshold_val, line_color='#333333', line_width=2,
                           annotation_text=f"Threshold: {threshold_val:.2f}",
                           annotation_position="top right")
-            st.caption("Predicted probability distributions for Low Rent (blue) and High Rent (red) listings. Good separation between the peaks indicates a well-calibrated model. The vertical line shows the active classification threshold.")
+            chart_header("Probability Separation by Class", "Predicted probability distributions for Low Rent (blue) and High Rent (red) listings. Good separation between the peaks indicates a well-calibrated model. The vertical line shows the active classification threshold.")
             st.plotly_chart(fig, use_container_width=True)
 
         st.subheader("Threshold Sensitivity")
@@ -981,7 +1026,7 @@ elif page == "High Rent Classifier":
                      if abs(row['Cutoff'] - threshold_val) < 0.06 else '')
             return [style] * len(row)
 
-        st.caption("Reference table — five fixed cutoffs for quick comparison:")
+        chart_header("Threshold Reference Table", "Five fixed cutoffs for quick comparison. The row closest to your active threshold is highlighted.")
         st.dataframe(M['threshold_df'].style.apply(highlight_closest, axis=1),
                      use_container_width=True)
 
