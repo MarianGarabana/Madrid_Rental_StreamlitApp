@@ -74,8 +74,15 @@ This dashboard brings a full end-to-end machine learning pipeline to life using 
 
 ```
 MadridRental/
-├── madrid_rental_app.py      # Main Streamlit application
-├── requirements.txt          # Python dependencies
+├── Home.py                        # Entry point — Home/Overview page
+├── utils.py                       # Shared: data loading, model training, CSS, helpers
+├── pages/
+│   ├── 1_Market_Explorer.py
+│   ├── 2_Property_Segments.py
+│   ├── 3_Association_Rules.py
+│   ├── 4_Rent_Predictor.py
+│   └── 5_High_Rent_Classifier.py
+├── requirements.txt               # Python dependencies
 ├── README.md
 └── data/
     └── Houses for rent in Madrid.xlsx   # ~2,100 Idealista listings
@@ -116,7 +123,7 @@ pip install -r requirements.txt
 
 **4. Run the app**
 ```bash
-streamlit run madrid_rental_app.py
+streamlit run Home.py
 ```
 
 The app will open at `http://localhost:8501`.
