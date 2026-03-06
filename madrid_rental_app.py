@@ -536,7 +536,7 @@ if page == "Market Explorer":
             st.plotly_chart(fig, use_container_width=True)
 
         # Correlation heatmap
-        chart_header("Correlation Matrix", "Pairwise Pearson correlations between numeric features. Dark red indicates strong positive correlation; dark blue indicates inverse correlation.")
+        chart_header("Correlation Matrix", "Pairwise Pearson correlations between numeric features. Purple indicates strong positive correlation; lime green indicates inverse correlation.")
         fig = px.imshow(
             filtered[['Rent','Sq.Mt','Bedrooms','Floor','Outer','Elevator']].corr(),
             text_auto='.2f', color_continuous_scale=[[0,'#E2F46E'],[0.5,'#FFFFFF'],[1,'#B72683']]
@@ -790,7 +790,7 @@ elif page == "Association Rules":
 
         fig = px.bar(
             top, x='lift', y='rule', orientation='h',
-            color='confidence', color_continuous_scale='RdPu',
+            color='confidence', color_continuous_scale=['#FFB3D9', '#B72683'],
             labels={'lift': 'Lift', 'rule': '', 'confidence': 'Confidence'},
         )
         fig.update_layout(yaxis={'categoryorder': 'total ascending'}, height=max(400, top_n * 38))
@@ -802,7 +802,7 @@ elif page == "Association Rules":
         # Scatter: support vs confidence, sized by lift
         fig2 = px.scatter(
             filtered_rules, x='support', y='confidence', size='lift', color='lift',
-            color_continuous_scale='RdPu',
+            color_continuous_scale=['#FFB3D9', '#B72683'],
             hover_data={'antecedents': True, 'consequents': True, 'lift': ':.3f'},
             labels={'support': 'Support', 'confidence': 'Confidence', 'lift': 'Lift'},
         )
