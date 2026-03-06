@@ -123,6 +123,16 @@ The app will open at `http://localhost:8501`.
 
 ---
 
+## AI Usage
+
+[Claude Sonnet](https://www.anthropic.com/claude) (Anthropic) was used as an AI assistant during development for:
+- **UI/UX design** — color scheme decisions, chart layout, and visual coherence across pages
+- **Bug fixing** — resolving color mapping inconsistencies in Plotly charts and ensuring consistent segment colors across all visualisations
+
+All ML modelling, data analysis, and application logic were written and validated by the author.
+
+---
+
 ## Course Info
 
 | | |
